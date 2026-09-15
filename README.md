@@ -214,6 +214,10 @@ npx wrangler deploy      # deploys to <name>.<subdomain>.workers.dev
 
 The Claude-accurate typefaces are **Anthropic Sans** and **Anthropic Serif** — **Anthropic's proprietary fonts**. They are **not included** in this repository. The viewer falls back to Helvetica/Georgia without them; to reproduce the exact look, supply the WOFF2 files as described in [`backend/public/fonts/README.md`](backend/public/fonts/README.md). Using Anthropic's fonts and brand marks is the deployer's responsibility.
 
+## License
+
+**All Rights Reserved.** This repository is proprietary and confidential — it is **not** open source. Copyright is held exclusively by **Chaitanya Sai ([@CHAITANYASAI-del](https://github.com/CHAITANYASAI-del))** and **Praharsha ([@praharsha0403](https://github.com/praharsha0403))**. No copying, modification, distribution, or use by any other party is permitted without prior written permission. See [`LICENSE`](LICENSE) for the full terms.
+
 ---
 
 *Claude Groupchats is an independent, third-party tool and is not affiliated with or endorsed by Anthropic.*
