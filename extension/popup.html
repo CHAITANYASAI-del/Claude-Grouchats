@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Claude Groupchats</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700&family=DM+Serif+Display&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+<div class="ext-root">
+
+  <!-- Meadow background -->
+  <img class="full-bg" src="assets/full-bg.png" alt="" />
+
+  <!-- Glass bar strips -->
+  <div class="vdots vdots--left">
+    <div class="vbar"></div><div class="vbar"></div><div class="vbar"></div>
+    <div class="vbar"></div><div class="vbar"></div><div class="vbar"></div><div class="vbar"></div>
+  </div>
+  <div class="vdots vdots--right">
+    <div class="vbar"></div><div class="vbar"></div><div class="vbar"></div>
+    <div class="vbar"></div><div class="vbar"></div><div class="vbar"></div><div class="vbar"></div>
+  </div>
+
+  <!-- Hero -->
+  <div class="hero">
+    <img class="hero__title" src="assets/Title.svg" alt="Claude GroupChats" />
+    <img class="hero__logo" src="assets/logo-mark.webp" alt="" />
+  </div>
+
+  <!-- Main content -->
+  <div class="main-content">
+
+    <!-- Loading -->
+    <div id="stateLoading" class="state-pad">
+      <div class="spinner"></div>
+      <p>Creating your share link…</p>
+    </div>
+
+    <!-- Live -->
+    <div id="stateLive" style="display:none">
+      <div class="info-bar">
+        <div class="info-bar__icon"><img src="assets/chat-icon.svg" alt="" /></div>
+        <div class="info-bar__text">
+          <span class="info-bar__label">Session is Live</span>
+          <span class="info-bar__url">Friend's messages appear in your Claude</span>
+        </div>
+      </div>
+
+      <div class="content-card">
+        <div class="card-bg-image"><img src="assets/clouds.png" alt="" /></div>
+
+        <div class="row-wrap"><img class="row-svg" src="assets/Frame 2147239699.svg" alt="Scan to Join" /></div>
+
+        <div class="qr-card">
+          <div class="qr-wrap" id="qrContainer"></div>
+        </div>
+
+        <div class="row-wrap"><img class="row-svg" src="assets/Frame 2147239700.svg" alt="Or tap below to share the link" /></div>
+
+        <div class="actions">
+          <div class="btn-outer">
+            <button class="btn btn--primary" id="copyBtn">
+              <svg class="btn__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+              </svg>
+              <span id="copyLabel">Invite Friends to Chat</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="how-works">
+          <div class="row-wrap"><img class="row-svg row-svg--heading" src="assets/Frame 2147239701.svg" alt="How It Works" /></div>
+
+          <div class="steps">
+            <img class="steps-img" src="assets/cards.webp" alt="Share your Link, send it to anyone, anywhere. They open it and type, it lands in your Claude. You reply and they see it live, no app needed." />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Wrong site -->
+    <div id="stateWrongSite" style="display:none">
+      <div class="info-bar">
+        <div class="info-bar__icon"><img src="assets/chat-icon-error.svg" alt="" /></div>
+        <div class="info-bar__text">
+          <span class="info-bar__label">Failed to Fetch session</span>
+          <span class="info-bar__url">Open a claude.ai tab to retry</span>
+        </div>
+      </div>
+
+      <div class="content-card wrong-site-card">
+        <div class="card-bg-image">
+          <img src="assets/clouds.png" alt="" />
+          <div class="card-bg-overlay"></div>
+        </div>
+        <img class="bee-img" src="assets/bee.png" alt="" />
+        <div class="message">
+          <p class="message__quote">I can&rsquo;t<br>work like this&hellip;</p>
+          <p class="message__body">Navigate to a claude.ai chat first, then click this extension.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Error -->
+    <div id="stateError" class="state-pad" style="display:none">
+      <div class="error-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+      </div>
+      <h3>Can't reach the server</h3>
+      <p>Couldn't connect to Claude Groupchats.<br>Please try again in a moment.</p>
+      <button class="retry-btn" id="retryBtn">Retry</button>
+    </div>
+
+  </div>
+</div>
+
+<script src="popup.js"></script>
+</body>
+</html>

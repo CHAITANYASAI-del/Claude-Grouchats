@@ -1,0 +1,10 @@
+# Proprietary Anthropic font binaries — not redistributed (see backend/public/fonts/README.md)
+*.woff2
+*.otf
+*.ttf
+
+# Local / build
+node_modules/
+.wrangler/
+.DS_Store
+*.log

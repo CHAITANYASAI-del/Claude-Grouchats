@@ -1,0 +1,16 @@
+<svg preserveAspectRatio="none" width="100%" height="100%" overflow="visible" style="display: block;" viewBox="0 0 181.049 181.035" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="Subtract" filter="url(#filter0_f_567_929)">
+<path d="M107.022 10.343C98.9562 8.74269 96.7966 8.67745 51.6403 8.67745H8.67745V93.2826H42.8449L43.4851 172.357H54.3245C94.6809 172.239 100.688 172.295 106.427 171.081C107.817 170.786 109.191 170.418 111.033 169.954C131.252 164.865 149.665 151.231 160.623 133.233C165.92 124.532 169.545 114.856 171.39 104.491C172.314 99.2946 172.69 86.2231 172.06 81.1703C169.713 62.3522 161.706 45.9082 148.457 32.6986C136.816 21.0918 122.637 13.4415 107.022 10.343Z" fill="url(#paint0_linear_567_929)"/>
+</g>
+<defs>
+<filter id="filter0_f_567_929" x="0" y="0" width="181.049" height="181.035" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+<feFlood flood-opacity="0" result="BackgroundImageFix"/>
+<feBlend mode="normal" in="SourceGraphic" in2="BackgroundImageFix" result="shape"/>
+<feGaussianBlur stdDeviation="4.33872" result="effect1_foregroundBlur_567_929"/>
+</filter>
+<linearGradient id="paint0_linear_567_929" x1="172.464" y1="90.3901" x2="8.67744" y2="90.3901" gradientUnits="userSpaceOnUse">
+<stop offset="0.463523" stop-color="white"/>
+<stop offset="1" stop-color="white" stop-opacity="0"/>
+</linearGradient>
+</defs>
+</svg>

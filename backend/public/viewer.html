@@ -1,0 +1,572 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Claude Groupchats — Viewer</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+/* Real Anthropic Serif (Display cut) — the typeface Claude uses for headers. */
+@font-face{
+  font-family:'Anthropic Serif';font-style:normal;font-weight:500;font-display:swap;
+  src:url('/fonts/AnthropicSerif-Display-Medium.woff2') format('woff2');
+}
+@font-face{
+  font-family:'Anthropic Serif';font-style:normal;font-weight:600;font-display:swap;
+  src:url('/fonts/AnthropicSerif-Display-Semibold.woff2') format('woff2');
+}
+@font-face{
+  font-family:'Anthropic Serif';font-style:normal;font-weight:700;font-display:swap;
+  src:url('/fonts/AnthropicSerif-Display-Bold.woff2') format('woff2');
+}
+/* Anthropic Sans (Text cut) — the face Claude uses for its response text. */
+@font-face{font-family:'Anthropic Sans';font-style:normal;font-weight:400;font-display:swap;src:url('/fonts/AnthropicSans-Text-Regular.woff2') format('woff2');}
+@font-face{font-family:'Anthropic Sans';font-style:italic;font-weight:400;font-display:swap;src:url('/fonts/AnthropicSans-Text-Italic.woff2') format('woff2');}
+@font-face{font-family:'Anthropic Sans';font-style:normal;font-weight:500;font-display:swap;src:url('/fonts/AnthropicSans-Text-Medium.woff2') format('woff2');}
+@font-face{font-family:'Anthropic Sans';font-style:normal;font-weight:600;font-display:swap;src:url('/fonts/AnthropicSans-Text-Semibold.woff2') format('woff2');}
+@font-face{font-family:'Anthropic Sans';font-style:normal;font-weight:700;font-display:swap;src:url('/fonts/AnthropicSans-Text-Bold.woff2') format('woff2');}
+:root{
+  /* Claude palette — warm cream + terracotta coral */
+  --primary:#D97757; --primary-hover:#C15F3C; --on-primary:#FFFFFF;
+  --accent:#D97757;
+  --bg:#F5F4EE; --surface:#FFFFFF; --surface-2:#F0EEE6;
+  --fg:#2D2A26; --fg-2:#6B6862; --fg-3:#A8A498;
+  --border:#E8E5DC; --border-teal:#EBC7BB;
+  --owner:#F0EEE6; --viewer:#D97757; --success:#5F9B6A;
+  --mono:'SF Mono',ui-monospace,monospace;
+  --serif:'Anthropic Serif',ui-serif,Georgia,serif;
+  --claude-sans:'Anthropic Sans','Helvetica Neue',Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--bg);color:var(--fg);
+  font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:14px;
+  height:100dvh;display:flex;flex-direction:column;overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+
+/* ── Top bar ── */
+#topbar{
+  height:60px;background:var(--surface);border-bottom:1px solid var(--border);
+  padding:0 20px;display:flex;align-items:center;gap:12px;flex-shrink:0;
+  box-shadow:0 1px 2px rgba(15,23,42,0.03);
+}
+.logo{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:500;letter-spacing:-0.01em;font-family:var(--serif)}
+.logo-mark{
+  width:30px;height:30px;
+  display:flex;align-items:center;justify-content:center;
+}
+.logo-mark svg{width:100%;height:100%;display:block}
+.badge{
+  display:inline-flex;align-items:center;gap:6px;
+  background:var(--surface-2);border:1px solid var(--border-teal);
+  color:var(--primary);padding:4px 11px;border-radius:999px;
+  font-size:11px;font-weight:600;
+}
+.ml-auto{margin-left:auto;display:flex;align-items:center;gap:7px}
+#status{font-size:13px;font-weight:500;color:var(--fg-2)}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--fg-3)}
+.dot.live{background:var(--success);animation:pulse 2s infinite}
+@keyframes pulse{
+  0%,100%{box-shadow:0 0 0 2px rgba(95,155,106,0.25)}
+  50%{box-shadow:0 0 0 5px rgba(95,155,106,0.06)}
+}
+
+/* ── Transcript ── */
+/* Scroll container is FULL WIDTH so its scrollbar sits at the window edge
+   (not floating mid-page); the content column is centered inside it. */
+#transcript{ flex:1;overflow-y:auto;width:100%; }
+#feed{
+  max-width:820px;width:100%;margin:0 auto;padding:24px 20px 40px;
+  display:flex;flex-direction:column;gap:18px;
+}
+.msg{animation:fadeUp 0.2s ease-out}
+.msg-meta{font-size:11px;color:var(--fg-3);margin-bottom:5px;font-weight:500}
+
+/* Owner + viewer bubbles (right aligned) */
+.msg-owner,.msg-viewer{align-self:flex-end;max-width:76%;text-align:right}
+.msg-owner .msg-meta,.msg-viewer .msg-meta{text-align:right}
+/* Friend (You) — coral, prominent */
+.msg-viewer .msg-body{
+  background:var(--primary);color:var(--on-primary);
+  padding:11px 15px;border-radius:16px 16px 4px 16px;text-align:left;
+  box-shadow:0 1px 3px rgba(217,119,87,0.22);
+}
+/* Owner — warm muted bubble */
+.msg-owner .msg-body{
+  background:var(--surface-2);color:var(--fg);border:1px solid var(--border);
+  padding:11px 15px;border-radius:16px 16px 4px 16px;text-align:left;
+}
+
+/* Claude message — a wide, document-style block like Claude itself (not a
+   tight chat bubble), so long structured answers read the same as they do in
+   Claude: headings, tables, dividers, generous spacing. */
+.msg-claude{align-self:stretch;max-width:100%}
+.msg-claude .msg-body{
+  background:var(--surface);border:1px solid var(--border);
+  color:var(--fg);padding:18px 22px;border-radius:14px;
+  box-shadow:0 1px 2px rgba(45,42,38,0.04);
+}
+.msg-body{font-size:15px;line-height:1.65;word-wrap:break-word;overflow-wrap:anywhere}
+.msg-owner .msg-body,.msg-viewer .msg-body{white-space:pre-wrap}
+
+/* Prose / markdown — tuned to match Claude's own rendering. */
+/* Claude's responses render in Anthropic Sans — the real face Claude uses. */
+.prose{color:var(--fg);line-height:1.7;white-space:normal;font-size:15px;font-family:var(--claude-sans)}
+.prose > *:first-child{margin-top:0}
+.prose > *:last-child{margin-bottom:0}
+.prose p{margin:12px 0}
+.prose h1{font-size:22px;font-weight:600;margin:22px 0 10px;letter-spacing:-0.01em}
+.prose h2{font-size:19px;font-weight:600;margin:20px 0 9px;letter-spacing:-0.01em}
+.prose h3{font-size:16px;font-weight:600;margin:16px 0 7px}
+.prose h4{font-size:15px;font-weight:600;margin:14px 0 6px}
+.prose ul,.prose ol{padding-left:24px;margin:12px 0}
+.prose li{margin:5px 0;line-height:1.6}
+.prose li>ul,.prose li>ol{margin:5px 0}
+.prose hr{border:none;border-top:1px solid var(--border);margin:20px 0}
+.prose blockquote{border-left:3px solid var(--border);padding-left:14px;margin:12px 0;color:var(--fg-2)}
+.prose a{color:var(--primary-hover);text-decoration:underline;text-underline-offset:2px}
+.prose code{
+  background:var(--surface-2);color:#B0501F;
+  padding:2px 6px;border-radius:5px;font-family:var(--mono);font-size:13px;
+}
+.prose pre{
+  background:#0F172A;border-radius:10px;padding:14px 16px;
+  overflow-x:auto;margin:14px 0;
+}
+.prose pre code{background:none;padding:0;color:#E2E8F0;font-size:13px;line-height:1.6}
+.prose table{border-collapse:separate;border-spacing:0;width:100%;margin:14px 0;font-size:14px;
+  border:1px solid var(--border);border-radius:10px;overflow:hidden}
+.prose th,.prose td{border-bottom:1px solid var(--border);border-right:1px solid var(--border);padding:11px 15px;text-align:left;vertical-align:top}
+.prose th:last-child,.prose td:last-child{border-right:none}
+.prose tr:last-child td{border-bottom:none}
+.prose thead th{background:var(--surface-2);font-weight:600;color:var(--fg);font-size:13px}
+.prose tbody tr:nth-child(even) td{background:#FAF9F5}
+.prose strong,.prose b{font-weight:600}
+.prose em{font-style:italic}
+.prose a{color:var(--primary);text-decoration:underline;text-underline-offset:2px}
+.prose hr{border:none;border-top:1px solid var(--border);margin:14px 0}
+.prose blockquote{border-left:3px solid var(--primary);padding-left:14px;color:var(--fg-2);margin:10px 0}
+
+/* ── Bottom bar ── */
+#bottomBar{
+  border-top:1px solid var(--border);background:var(--surface);
+  padding:14px 20px;flex-shrink:0;
+}
+.input-wrap{
+  max-width:900px;margin:0 auto;display:flex;gap:10px;
+  background:var(--bg);border:1.5px solid var(--border);
+  border-radius:12px;padding:6px 6px 6px 14px;transition:border-color 0.15s ease;
+}
+.input-wrap:focus-within{border-color:var(--primary)}
+#msgInput{
+  flex:1;background:transparent;border:none;outline:none;
+  color:var(--fg);font-size:14px;font-family:inherit;resize:none;
+  min-height:34px;max-height:120px;padding:7px 0;line-height:1.4;
+}
+#msgInput::placeholder{color:var(--fg-3)}
+#sendBtn{
+  width:38px;height:38px;background:var(--primary);border:none;
+  border-radius:9px;color:#fff;cursor:pointer;flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;
+  transition:background 0.15s ease;
+}
+#sendBtn:hover{background:var(--primary-hover)}
+#sendBtn:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+#sendBtn svg{width:18px;height:18px}
+#msgInput:disabled{opacity:0.5}
+
+/* ── Connecting overlay ── */
+#connecting{
+  position:fixed;inset:0;background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:18px;z-index:100;
+}
+.spinner{
+  width:34px;height:34px;border:3px solid var(--border);
+  border-top-color:var(--primary);border-radius:50%;
+  animation:spin 0.7s linear infinite;
+}
+#connecting h2{font-size:20px;font-weight:500;font-family:var(--serif);color:var(--fg)}
+#connecting p{font-size:13px;color:var(--fg-3)}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+
+/* Empty state */
+.empty{
+  align-self:center;margin:auto;text-align:center;color:var(--fg-3);
+  display:flex;flex-direction:column;align-items:center;gap:10px;
+}
+.empty svg{width:40px;height:40px;color:var(--border-teal)}
+
+@media (max-width:640px){
+  #transcript{padding:16px 14px}
+  .msg-owner,.msg-viewer{max-width:85%}
+  .msg-claude{max-width:94%}
+}
+@media (prefers-reduced-motion:reduce){
+  .msg,.spinner,.dot.live{animation:none}
+  *{transition:none !important}
+}
+
+/* ── Name gate ── */
+#nameGate{
+  position:fixed;inset:0;background:var(--bg);z-index:200;
+  display:flex;align-items:center;justify-content:center;padding:24px;
+}
+.name-card{
+  width:100%;max-width:380px;background:var(--surface);
+  border:1px solid var(--border);border-radius:16px;padding:28px 26px;
+  box-shadow:0 8px 30px rgba(15,23,42,0.08);text-align:center;
+}
+.name-card .logo-mark{width:48px;height:48px;margin:0 auto 16px}
+.name-card .logo-mark svg{width:100%;height:100%}
+.name-card h2{font-size:27px;font-weight:500;font-family:var(--serif);color:var(--fg);margin-bottom:6px;letter-spacing:-0.01em}
+.name-card p{font-size:13px;color:var(--fg-2);margin-bottom:20px;line-height:1.5}
+.name-card input{
+  width:100%;background:var(--bg);border:1.5px solid var(--border);
+  border-radius:10px;padding:12px 14px;font-size:15px;font-family:inherit;
+  color:var(--fg);outline:none;transition:border-color 0.15s ease;margin-bottom:12px;
+}
+.name-card input:focus{border-color:var(--primary)}
+.name-card button{
+  width:100%;background:var(--primary);color:#fff;border:none;
+  border-radius:10px;padding:12px;font-size:15px;font-weight:600;
+  font-family:inherit;cursor:pointer;transition:background 0.15s ease;
+}
+.name-card button:hover{background:var(--primary-hover)}
+.name-card button:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+</style>
+</head>
+<body>
+<div id="nameGate">
+  <div class="name-card">
+    <span class="logo-mark">
+      <svg viewBox="0 0 100 100" fill="#D97757" xmlns="http://www.w3.org/2000/svg" aria-label="Claude">
+        <path d="m19.6 66.5 19.7-11 .3-1-.3-.5h-1l-3.3-.2-11.2-.3L14 53l-9.5-.5-2.4-.5L0 49l.2-1.5 2-1.3 2.9.2 6.3.5 9.5.6 6.9.4L38 49.1h1.6l.2-.7-.5-.4-.4-.4L29 41l-10.6-7-5.6-4.1-3-2-1.5-2-.6-4.2 2.7-3 3.7.3.9.2 3.7 2.9 8 6.1L37 36l1.5 1.2.6-.4.1-.3-.7-1.1L33 25l-6-10.4-2.7-4.3-.7-2.6c-.3-1-.4-2-.4-3l3-4.2L28 0l4.2.6L33.8 2l2.6 6 4.1 9.3L47 29.9l2 3.8 1 3.4.3 1h.7v-.5l.5-7.2 1-8.7 1-11.2.3-3.2 1.6-3.8 3-2L61 2.6l2 2.9-.3 1.8-1.1 7.7L59 27.1l-1.5 8.2h.9l1-1.1 4.1-5.4 6.9-8.6 3-3.5L77 13l2.3-1.8h4.3l3.1 4.7-1.4 4.9-4.4 5.6-3.7 4.7-5.3 7.1-3.2 5.7.3.4h.7l12-2.6 6.4-1.1 7.6-1.3 3.5 1.6.4 1.6-1.4 3.4-8.2 2-9.6 2-14.3 3.3-.2.1.2.3 6.4.6 2.8.2h6.8l12.6 1 3.3 2 1.9 2.7-.3 2-5.1 2.6-6.8-1.6-16-3.8-5.4-1.3h-.8v.4l4.6 4.5 8.3 7.5L89 80.1l.5 2.4-1.3 2-1.4-.2-9.2-7-3.6-3-8-6.8h-.5v.7l1.8 2.7 9.8 14.7.5 4.5-.7 1.4-2.6 1-2.7-.6-5.8-8-6-9-4.7-8.2-.5.4-2.9 30.2-1.3 1.5-3 1.2-2.5-2-1.4-3 1.4-6.2 1.6-8 1.3-6.4 1.2-7.9.7-2.6v-.2H49L43 72l-9 12.3-7.2 7.6-1.7.7-3-1.5.3-2.8L24 86l10-12.8 6-7.9 4-4.6-.1-.5h-.3L17.2 77.4l-4.7.6-2-2 .2-3 1-1 8-5.5Z"></path>
+      </svg>
+    </span>
+    <h2>Join the session</h2>
+    <p>Enter your name so the owner sees who's chatting.</p>
+    <input id="nameInput" type="text" placeholder="Your name" maxlength="40" autocomplete="given-name" />
+    <button id="nameJoin">Join</button>
+  </div>
+</div>
+
+<div id="connecting" style="display:none">
+  <div class="spinner"></div>
+  <div style="text-align:center">
+    <h2>Connecting…</h2>
+    <p>Joining the shared session</p>
+  </div>
+</div>
+
+<div id="topbar">
+  <div class="logo">
+    <span class="logo-mark">
+      <svg viewBox="0 0 100 100" fill="#D97757" xmlns="http://www.w3.org/2000/svg" aria-label="Claude">
+        <path d="m19.6 66.5 19.7-11 .3-1-.3-.5h-1l-3.3-.2-11.2-.3L14 53l-9.5-.5-2.4-.5L0 49l.2-1.5 2-1.3 2.9.2 6.3.5 9.5.6 6.9.4L38 49.1h1.6l.2-.7-.5-.4-.4-.4L29 41l-10.6-7-5.6-4.1-3-2-1.5-2-.6-4.2 2.7-3 3.7.3.9.2 3.7 2.9 8 6.1L37 36l1.5 1.2.6-.4.1-.3-.7-1.1L33 25l-6-10.4-2.7-4.3-.7-2.6c-.3-1-.4-2-.4-3l3-4.2L28 0l4.2.6L33.8 2l2.6 6 4.1 9.3L47 29.9l2 3.8 1 3.4.3 1h.7v-.5l.5-7.2 1-8.7 1-11.2.3-3.2 1.6-3.8 3-2L61 2.6l2 2.9-.3 1.8-1.1 7.7L59 27.1l-1.5 8.2h.9l1-1.1 4.1-5.4 6.9-8.6 3-3.5L77 13l2.3-1.8h4.3l3.1 4.7-1.4 4.9-4.4 5.6-3.7 4.7-5.3 7.1-3.2 5.7.3.4h.7l12-2.6 6.4-1.1 7.6-1.3 3.5 1.6.4 1.6-1.4 3.4-8.2 2-9.6 2-14.3 3.3-.2.1.2.3 6.4.6 2.8.2h6.8l12.6 1 3.3 2 1.9 2.7-.3 2-5.1 2.6-6.8-1.6-16-3.8-5.4-1.3h-.8v.4l4.6 4.5 8.3 7.5L89 80.1l.5 2.4-1.3 2-1.4-.2-9.2-7-3.6-3-8-6.8h-.5v.7l1.8 2.7 9.8 14.7.5 4.5-.7 1.4-2.6 1-2.7-.6-5.8-8-6-9-4.7-8.2-.5.4-2.9 30.2-1.3 1.5-3 1.2-2.5-2-1.4-3 1.4-6.2 1.6-8 1.3-6.4 1.2-7.9.7-2.6v-.2H49L43 72l-9 12.3-7.2 7.6-1.7.7-3-1.5.3-2.8L24 86l10-12.8 6-7.9 4-4.6-.1-.5h-.3L17.2 77.4l-4.7.6-2-2 .2-3 1-1 8-5.5Z"></path>
+      </svg>
+    </span>
+    Claude Groupchats
+  </div>
+  <span id="sessionName" style="font-size:13px;color:var(--fg-2);font-weight:500;border-left:1px solid var(--border);padding-left:12px;display:none"></span>
+  <div class="badge">Viewer</div>
+  <div class="ml-auto"><span class="dot" id="dot"></span><span id="status">Connecting…</span></div>
+</div>
+
+<div id="transcript"><div id="feed"></div></div>
+
+<div id="bottomBar">
+  <div class="input-wrap">
+    <textarea id="msgInput" rows="1" placeholder="Connecting…" disabled></textarea>
+    <button id="sendBtn" aria-label="Send message">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<script>
+// Strip any stray character (trailing slash, bracket, whitespace, etc.) so
+// a slightly-mangled copy-pasted link still connects to the right session —
+// matches the same sanitization the server applies when creating tokens.
+const sessionId = (location.pathname.split('/join/')[1] || '').replace(/[^A-Za-z0-9]/g, '');
+// Derive server URL from wherever this page was loaded (tunnel URL).
+// This never breaks when your local IP changes.
+const SERVER_URL = window.location.origin;
+let ws = null;
+let myName = '';
+
+// ── Name gate: ask the viewer's name before showing the chat ──
+(function nameGate() {
+  const saved = localStorage.getItem('ss_name_' + sessionId);
+  const gate = document.getElementById('nameGate');
+  const input = document.getElementById('nameInput');
+  const join = document.getElementById('nameJoin');
+
+  function proceed(name) {
+    myName = (name || 'Friend').trim().slice(0, 40) || 'Friend';
+    localStorage.setItem('ss_name_' + sessionId, myName);
+    gate.style.display = 'none';
+    document.getElementById('connecting').style.display = 'flex';
+    init();
+  }
+
+  if (saved) { proceed(saved); return; }
+  setTimeout(() => input && input.focus(), 100);
+  join.onclick = () => proceed(input.value);
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') proceed(input.value); });
+})();
+
+async function init() {
+  if (!sessionId) { alert('Invalid session'); return; }
+
+  const wsUrl = SERVER_URL.replace('http://', 'ws://').replace('https://', 'wss://');
+  ws = new WebSocket(`${wsUrl}/ws?token=${sessionId}&role=viewer`);
+
+  ws.onopen = () => {
+    setStatus('live');
+    document.getElementById('connecting').style.display = 'none';
+    document.getElementById('msgInput').disabled = false;
+    document.getElementById('msgInput').placeholder = 'Type a message… (Enter to send)';
+  };
+
+  ws.onmessage = (e) => {
+    try {
+      const msg = JSON.parse(e.data);
+      if (msg.type === 'history') {
+        if (msg.name) setSessionName(msg.name);
+        reconcile(msg.messages || []);      // authoritative, keyed, smooth
+      } else {
+        upsertLive(msg);                    // instant single live update
+      }
+    } catch {}
+  };
+
+  ws.onclose = () => {
+    setStatus('connecting');
+    document.getElementById('msgInput').disabled = true;
+    setTimeout(init, 2000);
+  };
+}
+
+function fmtTime(ts) {
+  const d = new Date(ts);
+  return isNaN(d.getTime()) ? '' : d.toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'});
+}
+function meta(label, ts) {
+  const time = fmtTime(ts);
+  return `<div class="msg-meta">${esc(label)}${time ? ' · ' + time : ''}</div>`;
+}
+
+// ── Keyed reconcile renderer ─────────────────────────────────────────────────
+// The transcript is diffed, never wiped. Each message is keyed by its claude.ai
+// UUID (from the API) so updates land in place — no flicker, no scroll-jump, no
+// duplicates — and the friend's scroll position is preserved unless they're
+// already pinned to the live edge.
+
+const rendered = new Map();   // key -> element
+
+function normContent(msg) {
+  return cleanClaudeText(String(msg.content || ''))
+    .replace(/^\[[^\]]{1,40}\]:\s*/, '').replace(/\s+/g, ' ').trim().slice(0, 200);
+}
+function msgKey(msg) {
+  if (msg.uuid) return 'u:' + msg.uuid;
+  return 'c:' + msg.type + '|' + (msg.role || '') + '|' + (msg.name || '') + '|' + normContent(msg);
+}
+function msgSig(msg) {
+  return msg.type + '|' + (msg.role || '') + '|' + (msg.name || '') + '|' +
+         cleanClaudeText(String(msg.content || ''));
+}
+function nearBottom(t) {
+  return (t.scrollHeight - t.scrollTop - t.clientHeight) < 100;
+}
+
+// Build the DOM node for one message (or null if it shouldn't render).
+function buildMsgEl(msg) {
+  const el = document.createElement('div');
+  el.className = 'msg';
+  if (msg.type === 'prompt_sent') {
+    if (msg.role === 'viewer') {
+      el.className += ' msg-viewer';
+      const label = (msg.name && msg.name !== myName) ? msg.name : 'You';
+      el.innerHTML = meta(label, msg.timestamp) + `<div class="msg-body">${esc(msg.content)}</div>`;
+    } else {
+      el.className += ' msg-owner';
+      el.innerHTML = meta('Owner', msg.timestamp) + `<div class="msg-body">${esc(msg.content)}</div>`;
+    }
+  } else if (msg.type === 'claude_text') {
+    const clean = cleanClaudeText(msg.content);
+    if (!clean) return null;
+    el.className += ' msg-claude';
+    const html = typeof marked !== 'undefined' ? marked.parse(clean) : `<p>${esc(clean)}</p>`;
+    el.innerHTML = meta('Claude', msg.timestamp) + `<div class="msg-body prose">${html}</div>`;
+  } else {
+    return null;
+  }
+  el.dataset.sig = msgSig(msg);
+  return el;
+}
+
+// Authoritative full-list render: add new, update changed, reorder, remove gone.
+function reconcile(list) {
+  const sc = document.getElementById('transcript');   // scroll container
+  const t = document.getElementById('feed');           // content column
+  const stick = nearBottom(sc);
+
+  const desired = [];
+  const seen = new Set();
+  for (const raw of (list || [])) {
+    const m = normalizeMsg(raw);
+    if (!m || !m.type) continue;
+    const k = msgKey(m);
+    if (seen.has(k)) continue;            // exact dedup
+    seen.add(k);
+    desired.push({ k, m });
+  }
+  const desiredKeys = new Set(desired.map(d => d.k));
+
+  // Remove anything no longer present (this also sweeps the transient keyless
+  // live copies once their UUID-keyed authoritative version arrives).
+  for (const [k, el] of [...rendered]) {
+    if (k === 'live-claude') continue;    // handled below
+    if (!desiredKeys.has(k)) { el.remove(); rendered.delete(k); }
+  }
+
+  let prev = null;
+  for (const { k, m } of desired) {
+    let el = rendered.get(k);
+    const sig = msgSig(m);
+    if (!el) {
+      el = buildMsgEl(m);
+      if (!el) continue;
+      rendered.set(k, el);
+    } else if (el.dataset.sig !== sig) {
+      const neo = buildMsgEl(m);
+      if (neo) { el.replaceWith(neo); rendered.set(k, neo); el = neo; }
+    }
+    if (prev) { if (prev.nextSibling !== el) prev.after(el); }
+    else { if (t.firstChild !== el) t.prepend(el); }
+    prev = el;
+  }
+
+  // Drop the streaming Claude tail once the finalized (UUID'd) reply is in.
+  if (rendered.has('live-claude') && desired.length &&
+      desired[desired.length - 1].m.type === 'claude_text') {
+    rendered.get('live-claude').remove();
+    rendered.delete('live-claude');
+  }
+
+  if (stick) sc.scrollTop = sc.scrollHeight;
+}
+
+// Single instant live update (streaming Claude tokens, or an immediate echo).
+function upsertLive(raw) {
+  const msg = normalizeMsg(raw);
+  if (!msg || !msg.type) return;
+  const sc = document.getElementById('transcript');   // scroll container
+  const t = document.getElementById('feed');           // content column
+  const stick = nearBottom(sc);
+  // A streaming Claude reply (no UUID yet) updates ONE stable tail bubble so
+  // tokens replace in place instead of spawning a new bubble each tick.
+  const streaming = msg.type === 'claude_text' && !msg.uuid;
+  const k = streaming ? 'live-claude' : msgKey(msg);
+  let el = rendered.get(k);
+  const sig = msgSig(msg);
+  if (!el) {
+    el = buildMsgEl(msg);
+    if (!el) return;
+    rendered.set(k, el);
+    t.appendChild(el);
+  } else if (el.dataset.sig !== sig) {
+    const neo = buildMsgEl(msg);
+    if (neo) { el.replaceWith(neo); rendered.set(k, neo); }
+  }
+  if (stick) sc.scrollTop = sc.scrollHeight;
+}
+
+function setStatus(s) {
+  document.getElementById('dot').className = 'dot ' + (s === 'live' ? 'live' : '');
+  document.getElementById('status').textContent = s === 'live' ? 'Live' : 'Connecting…';
+}
+
+function setSessionName(name) {
+  const el = document.getElementById('sessionName');
+  if (!el || !name) return;
+  el.textContent = name;
+  el.style.display = 'inline';
+  document.title = name + ' — Claude Groupchats';
+}
+
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+
+// Defensive cleanup for Claude replies that may still be stored dirty from the
+// older extension: strip the "Claude responded:" prefix and collapse the
+// double-render ("Hi!Hi!", or a truncated preview glued before the full copy).
+// Collapse claude.ai's double-render on ANY text: whole "AA", an opening chunk
+// repeated back-to-back ("HiHi"→"Hi", "Hi!Hi! rest"→"Hi! rest"), or a truncated
+// preview glued before the full copy.
+function collapseView(raw) {
+  let s = String(raw || '').trim();
+  if (s.length < 2) return s;
+  if (s.length % 2 === 0) {
+    const h = s.length / 2;
+    if (s.slice(0, h) === s.slice(h)) return s.slice(0, h).trim();
+  }
+  for (let k = Math.floor(s.length / 2); k >= 1; k--) {
+    if (s.slice(0, k) === s.slice(k, 2 * k)) return (s.slice(0, k) + s.slice(2 * k)).trim();
+  }
+  const head = s.slice(0, 40);
+  if (head.length === 40) {
+    const idx = s.indexOf(head, 1);
+    if (idx > 0) {
+      const first = s.slice(0, idx), second = s.slice(idx).trim();
+      if (/(\.\.\.|…)\s*$/.test(first) || second.length >= first.length) return second;
+    }
+  }
+  return s;
+}
+function cleanClaudeText(raw) {
+  return collapseView(String(raw || '').trim().replace(/^\s*Claude\s+responded\s*:\s*/i, '').trim());
+}
+
+// Normalize EVERY incoming message before it's keyed/rendered. This repairs
+// data produced by older builds and other surfaces (Claude Code included):
+//   • collapses double-render on prompts too ("HelloHello" → "Hello")
+//   • strips the "Claude responded:" prefix
+//   • re-routes any "Claude responded:" message (mis-stored as an owner prompt)
+//     to a proper left-aligned Claude bubble
+function normalizeMsg(m) {
+  if (!m || !m.type) return m;
+  const content = String(m.content || '');
+  const looksClaude = m.type === 'claude_text' || /^\s*Claude\s+responded\s*:/i.test(content);
+  if (looksClaude) {
+    return { ...m, type: 'claude_text', role: 'claude', content: cleanClaudeText(content) };
+  }
+  return { ...m, content: collapseView(content) };
+}
+
+function scroll() { document.getElementById('transcript').scrollTop = document.getElementById('transcript').scrollHeight; }
+
+document.getElementById('msgInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+});
+document.getElementById('sendBtn').onclick = send;
+
+function send() {
+  if (!ws || ws.readyState !== 1) return;
+  const text = document.getElementById('msgInput').value.trim();
+  if (!text) return;
+
+  ws.send(JSON.stringify({ type: 'viewer_prompt', content: text, name: myName }));
+  document.getElementById('msgInput').value = '';
+}
+</script>
+</body>
+</html>

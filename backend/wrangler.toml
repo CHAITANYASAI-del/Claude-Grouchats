@@ -1,0 +1,21 @@
+name = "claude-groupchats"
+main = "worker.js"
+compatibility_date = "2024-09-23"
+
+# Serve the viewer web app (public/viewer.html) as static assets.
+# html_handling = "none" stops Cloudflare from redirecting /viewer.html → /viewer
+# (which would strip the /join/:token path the viewer needs).
+[assets]
+directory = "./public"
+binding = "ASSETS"
+html_handling = "none"
+
+# One Durable Object per session token — holds live WebSockets + history
+[[durable_objects.bindings]]
+name = "SESSION_ROOM"
+class_name = "SessionRoom"
+
+# Free plan requires SQLite-backed Durable Objects
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["SessionRoom"]

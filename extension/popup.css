@@ -1,0 +1,217 @@
+/* ═══════════════════════════════════════════════════════════════
+   Claude Groupchats — extension popup
+   Matches Figma: Portfolio Playground, node 561-898
+   ═══════════════════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --blue:          #006DFF;
+  --blue-hover:    #0057CC;
+  --blue-soft:     #B2C6E7;
+  --blue-glow:     #4B98FF;
+  --white:         #FFFFFF;
+  --icon-bg:       #F8FBFC;
+  --icon-border:   #F4F4F4;
+  --card-border:   #E3E8ee;
+  --text-dark:     #17181A;
+  --text-mid:      #6B6862;
+  --red:           #C2410C;
+  --red-bg:        #FEF2F2;
+  --font:          'Geist', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --ease:          cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html, body { margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font);
+  background: var(--white);
+  color: var(--text-dark);
+  width: 394px;
+  font-size: 13px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.ext-root { position: relative; width: 100%; overflow-x: hidden; background: var(--white); }
+
+/* ─── Full meadow background ─── */
+.full-bg {
+  position: absolute; top: -80px; left: 0;
+  width: 100%; height: 360px;
+  object-fit: cover; object-position: top center;
+  pointer-events: none; z-index: 0;
+}
+
+/* ─── Vertical glass bar strips ─── */
+.vdots { position: absolute; top: 0; bottom: 0; display: flex; pointer-events: none; z-index: 1; }
+.vdots--left { left: 0; } .vdots--right { right: 0; }
+.vbar {
+  width: 14px; height: 100%; position: relative;
+  background: linear-gradient(270deg, rgba(255,255,255,0.20) -13%, rgba(255,255,255,0.10) 50%, rgba(255,255,255,0.01) 180%);
+  background-blend-mode: color-dodge;
+  backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+}
+.vdots--left .vbar:nth-child(6) { opacity: 0.7; }
+.vdots--left .vbar:last-child { opacity: 0.35; }
+.vdots--right .vbar:first-child { opacity: 0.35; }
+.vdots--right .vbar:nth-child(2) { opacity: 0.7; }
+
+/* ─── Hero: title + logo ─── */
+.hero { position: relative; height: 266px; z-index: 2; }
+.hero__title {
+  position: absolute; top: 61px; left: 50%; transform: translateX(-50%);
+  z-index: 3; width: 175px; height: auto;
+  filter: drop-shadow(0 2px 14px rgba(0, 40, 90, 0.28));
+}
+.hero__logo {
+  position: absolute; top: 145px; left: 50%; transform: translateX(-50%);
+  width: 139px; height: 139px; z-index: 3;
+  object-fit: contain;
+  filter: drop-shadow(0 8px 20px rgba(0, 60, 140, 0.20));
+}
+
+/* ─── Main content ─── */
+.main-content { position: relative; z-index: 4; display: flex; flex-direction: column; }
+
+/* ─── Info bar ─── */
+.info-bar {
+  display: flex; align-items: center; gap: 10px;
+  padding: 12px; background: var(--white);
+  border-radius: 16px 16px 0 0; margin: 0 16px;
+  position: relative; z-index: 5;
+}
+.info-bar__icon {
+  width: 32px; height: 32px; background: var(--icon-bg);
+  border: 0.4px solid var(--icon-border); border-radius: 6px;
+  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+}
+.info-bar__icon img { width: 20px; height: 20px; }
+.info-bar__text { display: flex; flex-direction: column; gap: 0px; flex: 1; min-width: 0; }
+.info-bar__label { font-size: 14px; font-weight: 500; color: var(--blue); }
+.info-bar__url { font-size: 12px; font-weight: 400; color: var(--blue-soft);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ─── Content card ─── */
+.content-card {
+  background: var(--white); border-radius: 20px 20px 0 0;
+  margin-top: -2px; padding: 16px; position: relative; z-index: 6;
+  box-shadow: 0 -1px 11px 0 rgba(25,25,25,0.06);
+  overflow: hidden; display: flex; flex-direction: column; gap: 12px;
+}
+.card-bg-image {
+  position: absolute; top: 0; left: 0; right: 0; height: 170px;
+  pointer-events: none; z-index: 0; overflow: hidden; border-radius: 20px 20px 0 0;
+  opacity: 0.9;
+}
+.card-bg-image img { width: 100%; height: 100%; object-fit: cover; object-position: center bottom; display: block; }
+
+/* ─── Wrong-site card — layered luminosity/overlay blend, matches the
+   framer-extractor reference (bee removed, same treatment otherwise) ─── */
+.wrong-site-card {
+  padding: 20px 24px 16px; align-items: center; isolation: isolate;
+  min-height: 260px;
+}
+.wrong-site-card .card-bg-image {
+  top: 0; left: 0; right: 0; bottom: 0; height: auto; opacity: 1;
+  border-radius: 20px 20px 0 0; background: var(--white);
+}
+.wrong-site-card .card-bg-image img {
+  position: absolute; top: 0; left: 0; width: 100%; height: 124.88%;
+  object-fit: cover; object-position: center top; mix-blend-mode: luminosity;
+}
+.card-bg-overlay {
+  position: absolute; top: 0; left: 0; width: 100%; height: 124.88%;
+  background: var(--blue-soft); mix-blend-mode: overlay;
+}
+.bee-img { position: relative; z-index: 1; width: 172px; height: 172px; object-fit: contain; }
+.message {
+  position: relative; z-index: 1; display: flex; flex-direction: column;
+  align-items: center; gap: 12px; text-align: center;
+}
+.message__quote {
+  font-family: 'DM Serif Display', serif; font-size: 29px; font-weight: 700;
+  color: var(--blue-soft); line-height: 1.2;
+}
+.message__body {
+  font-size: 13px; font-weight: 500; color: var(--text-dark);
+  line-height: 1.5; max-width: 220px;
+}
+
+/* ─── Divider rows (Scan to Join / Or tap below / How It Works) ───
+   Exact Figma exports (text + fading gradient dividers baked into the SVG).
+   Scaled up and re-centered inside a clipping wrapper — only the already-
+   transparent tail ends of the dividers get cropped, so the text reads
+   bigger with zero visible clipping artifact. */
+.row-wrap { position: relative; z-index: 1; width: 100%; overflow: hidden; }
+.row-svg { display: block; width: 118%; margin-left: -9%; height: auto; }
+.row-svg--heading { width: 128%; margin-left: -14%; }
+
+/* ─── QR card ─── */
+.qr-card { position: relative; z-index: 1; display: flex; justify-content: center; }
+.qr-wrap {
+  background: var(--white); border: 1px solid var(--card-border); border-radius: 12px;
+  padding: 6px; box-shadow: 0 3px 4px rgba(0,109,255,0.14);
+  display: flex; align-items: center; justify-content: center;
+}
+.qr-wrap img, .qr-wrap canvas { width: 140px; height: 140px; border-radius: 6px; display: block; }
+
+/* ─── Buttons ─── */
+.actions { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 8px; }
+.btn-outer { background: rgba(113,174,255,0.41); border-radius: 12px; padding: 2px; }
+.btn {
+  width: 100%; border: none; cursor: pointer; font-family: var(--font);
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: all 160ms var(--ease); position: relative; overflow: hidden;
+}
+.btn--primary {
+  height: 44px; border-radius: 10px; background: var(--blue); color: #fff;
+  font-size: 13px; font-weight: 500; letter-spacing: -0.01em;
+  box-shadow:
+    inset 0.6px 0.6px 0 0 rgba(255,255,255,0.10),
+    inset 0 -1.5px 1.5px -0.5px var(--blue-glow),
+    inset 0 1.5px 1.5px 0 rgba(255,255,255,0.30);
+}
+.btn--primary:hover { background: var(--blue-hover); transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(0,109,255,0.32),
+    inset 0.6px 0.6px 0 0 rgba(255,255,255,0.12),
+    inset 0 -1.5px 1.5px -0.5px var(--blue-glow),
+    inset 0 1.5px 1.5px 0 rgba(255,255,255,0.35); }
+.btn--primary:active { transform: translateY(0); }
+.btn__icon { width: 16px; height: 16px; }
+
+/* ─── How it works — heading + 3-card composite image ─── */
+.how-works { position: relative; z-index: 1; display: flex; flex-direction: column; gap: 12px; }
+.steps { display: block; }
+.steps-img { width: 100%; height: auto; display: block; border-radius: 10px; }
+
+/* ─── Loading & error states ─── */
+.state-pad { padding: 26px 22px 30px; position: relative; z-index: 6; background: var(--white);
+  border-radius: 20px 20px 0 0; margin-top: -2px; box-shadow: 0 -1px 11px 0 rgba(25,25,25,0.06);
+  text-align: center; }
+.spinner {
+  width: 26px; height: 26px; border: 2.5px solid var(--icon-border);
+  border-top-color: var(--blue); border-radius: 50%;
+  animation: spin 0.7s linear infinite; margin: 8px auto 12px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.state-pad p { font-size: 12px; color: var(--text-mid); }
+.error-icon {
+  width: 44px; height: 44px; background: var(--red-bg); border: 1px solid #F3C9B3;
+  border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px;
+}
+.error-icon svg { width: 20px; height: 20px; color: var(--red); }
+.state-pad h3 { font-size: 14px; font-weight: 700; color: var(--text-dark); margin-bottom: 6px; }
+.state-pad code { background: var(--icon-bg); padding: 3px 8px; border-radius: 5px;
+  font-size: 10.5px; font-family: 'SF Mono', monospace; color: var(--text-dark); }
+.retry-btn {
+  margin-top: 14px; background: var(--blue); border: none; color: #fff;
+  padding: 9px 22px; border-radius: 10px; cursor: pointer; font-size: 12.5px;
+  font-weight: 600; font-family: inherit;
+}
+.retry-btn:hover { background: var(--blue-hover); }
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner { animation: none; }
+  * { transition: none !important; }
+}
